@@ -107,7 +107,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             try {
                 TerminalAuthenticationMsg authenticationMsg = this.decoder.toTerminalAuthenticationMsg(packageData);
                 this.msgProcessService.processAuthMsg(authenticationMsg);
-                logger.info("终端鉴权:{}", JSON.toJSONString(authenticationMsg, true));
                 logger.info("<<<<<[终端鉴权],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             } catch (Exception e) {
                 logger.error("<<<<<[终端鉴权]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
@@ -146,7 +145,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             try {
                 LocationInfoUploadMsg locationInfoUploadMsg = this.decoder.toLocationInfoUploadMsg(packageData);
                 this.msgProcessService.processLocationInfoUploadMsg(locationInfoUploadMsg);
-                //logger.info("位置信息:{}", JSON.toJSONString(locationInfoUploadMsg, true));
             } catch (Exception e) {
                 logger.error("<<<<<[位置信息]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
                         e.getMessage());
@@ -160,7 +158,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             try {
                 LocationInfoUploadMsg locationInfoUploadMsg = this.decoder.toLocationInfoUploadMsg(packageData);
                 this.msgProcessService.processLocationInfoUploadMsg(locationInfoUploadMsg);
-                logger.info("位置信息查询应答:{}", JSON.toJSONString(locationInfoUploadMsg, true));
                 logger.info("<<<<<[位置信息查询应答],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             } catch (Exception e) {
                 logger.error("<<<<<[位置信息查询应答]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
@@ -262,7 +259,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
      * @throws Exception 处理扩展消息上行数据
      */
     private void processExtendedMsg(ExtendedTimekeepingTrainingMsg msg) throws Exception {
-        //logger.info("扩展消息:{}", JSON.toJSONString(msg, true));
+        logger.info("扩展消息:{}", JSON.toJSONString(msg, true));
         byte[] dataCon = msg.getExtendedTimekeepingTrainingInfo().getDataContent();
         //教练登录
         if (TPMSConsts.COACH_LOGIN == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {

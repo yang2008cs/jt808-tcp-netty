@@ -165,7 +165,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void coachLoginMsg(ExtendedTimekeepingTrainingMsg msg, CoachLoginMsg coachLoginMsg) throws Exception {
-        log.debug("扩展消息:{}", JSON.toJSONString(msg, true));
         log.debug("教练登录:{}", JSON.toJSONString(coachLoginMsg, true));
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
@@ -208,7 +207,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void coachLoginOutMsg(ExtendedTimekeepingTrainingMsg msg, CoachLoginMsg coachLoginMsg) throws Exception {
-        log.debug("扩展消息:{}", JSON.toJSONString(msg, true));
         log.debug("教练登出:{}", JSON.toJSONString(coachLoginMsg, true));
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
@@ -232,7 +230,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void studentLoginMsg(ExtendedTimekeepingTrainingMsg msg, StudentLoginMsg studentLoginMsg) throws Exception {
-        log.debug("扩展消息:{}", JSON.toJSONString(msg, true));
         log.debug("学员登录:{}", JSON.toJSONString(studentLoginMsg, true));
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
@@ -308,7 +305,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void upPeriodRecordMsg(ExtendedTimekeepingTrainingMsg msg, UpPeriodRecordMsg upPeriodRecordMsg) throws Exception{
-        log.debug("上报学时记录:{}", JSON.toJSONString(upPeriodRecordMsg, true));
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
         if (session == null) {
@@ -353,7 +349,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void photoUploadDataMsg(ExtendedTimekeepingTrainingMsg msg, PhotoUploadDataMsg photoUploadDataMsg)throws Exception {
-        log.debug("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
         if (session == null) {
