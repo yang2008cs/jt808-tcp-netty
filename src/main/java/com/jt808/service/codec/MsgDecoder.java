@@ -505,6 +505,22 @@ public class MsgDecoder {
     }
 
     /**
+     * 上传图片数据
+     *
+     * @param data
+     * @return
+     */
+    public PhotoUploadDataMsg photoUploadDataPckMsg(byte[] tmp,byte[] data) {
+        PhotoUploadDataMsg body = new PhotoUploadDataMsg();
+        //照片编号
+        body.setPhotoNum(this.parseStringFromBytes(tmp, 0, 10).trim());
+        //照片数据
+        body.setPhotoData(this.parseStringFromBytes(data, 0, data.length-1));
+
+        return body;
+    }
+
+    /**
      * 查询计时终端应用参数
      *
      * @param data

@@ -1,12 +1,14 @@
 package com.jt808.service.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.jt808.util.Img2Base64Util;
 import com.jt808.common.TPMSConsts;
 import com.jt808.server.ChannelMap;
 import com.jt808.server.LoopBuffer;
 import com.jt808.server.SessionManager;
 import com.jt808.service.TerminalMsgProcessService;
 import com.jt808.service.codec.MsgDecoder;
+import com.jt808.util.DigitalUtils;
 import com.jt808.vo.PackageData;
 import com.jt808.vo.PackageData.MsgHeader;
 import com.jt808.vo.Session;
@@ -21,6 +23,9 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * @author :liuyang
  * 将接收到的消息进行处理，截取消息头和消息体，判断消息头中消息id，
@@ -34,12 +39,14 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
     private final MsgDecoder decoder;
     private TerminalMsgProcessService msgProcessService;
     private LoopBuffer loopBuffer;
+    private Map<Long, byte[]> map;
 
     public TCPServerHandler() {
         this.sessionManager = SessionManager.getInstance();
         this.decoder = new MsgDecoder();
         this.msgProcessService = new TerminalMsgProcessService();
         this.loopBuffer = LoopBuffer.getInstance();
+        this.map = new ConcurrentHashMap<>();
     }
 
     /**
@@ -58,13 +65,14 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             }
             byte[] bs = new byte[buf.readableBytes()];
             buf.readBytes(bs);
-            logger.info("数据 bs:{}", bs);
+            bs = DigitalUtils.meanTransfer(bs);
+            logger.info("数据length bs:{},数据 bs:{}", bs.length, bs);
             // 字节数据转换为针对于808消息结构的实体类
             PackageData pkg = this.decoder.bytes2PackageData(bs);
             // 引用channel,以便回送数据给硬件
             pkg.setChannel(ctx.channel());
             String phone = pkg.getMsgHeader().getTerminalPhone();
-            //手机号码长度补，全统一长度16
+            //手机号码长度补全统一长度16
             phone = String.format("%016d", Long.parseLong(phone));
             //使用手机号码作为key，将对应的连接通道保存
             ChannelMap.addChannel(phone, ctx.channel());
@@ -73,6 +81,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             release(msg);
         }
     }
+
 
     /**
      * 处理业务逻辑
@@ -86,7 +95,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             logger.info(">>>>>[终端心跳],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             try {
                 this.msgProcessService.processTerminalHeartBeatMsg(packageData);
-                logger.info("<<<<<[终端心跳],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             } catch (Exception e) {
                 logger.error("<<<<<[终端心跳]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
                         e.getMessage());
@@ -135,12 +143,10 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
         // 5. 位置信息汇报 ==> 平台通用应答
         else if (TPMSConsts.MSG_ID_TERMINAL_LOCATION_INFO_UPLOAD == header.getMsgId()) {
             logger.info(">>>>>[位置信息],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
-            logger.info(">>>>>[位置信息],data={}", packageData);
             try {
                 LocationInfoUploadMsg locationInfoUploadMsg = this.decoder.toLocationInfoUploadMsg(packageData);
                 this.msgProcessService.processLocationInfoUploadMsg(locationInfoUploadMsg);
-                logger.info("位置信息:{}", JSON.toJSONString(locationInfoUploadMsg, true));
-                logger.info("<<<<<[位置信息],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                //logger.info("位置信息:{}", JSON.toJSONString(locationInfoUploadMsg, true));
             } catch (Exception e) {
                 logger.error("<<<<<[位置信息]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
                         e.getMessage());
@@ -164,11 +170,11 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
         }
         // 7. 扩展计时培训消息
         else if (TPMSConsts.DATA_UP == header.getMsgId()) {
-            logger.info(">>>>>[数据上行],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+            //logger.info(">>>>>[数据上行],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             try {
                 ExtendedTimekeepingTrainingMsg msg = this.decoder.toExtendedTimekeepingTrainingMsg(packageData);
                 processExtendedMsg(msg);
-                logger.info("<<<<<[数据上行],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
+                // logger.info("<<<<<[数据上行],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             } catch (Exception e) {
                 logger.error("<<<<<[数据上行]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
                         e.getMessage());
@@ -184,7 +190,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
             System.arraycopy(msgBodyByte, 4, tmp, 0, tmp.length);
             byte[] msg4 = new byte[4];
             System.arraycopy(msgBodyByte, 0, msg4, 0, msg4.length);
-            logger.info("[数据]:{}", tmp);
             try {
                 if (header.isHasSubPackage()) {
                     loopBuffer.write(tmp);
@@ -197,7 +202,6 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
                     msg = this.decoder.toQueryTerminalArgRespMsg(msg4, tmp);
                     logger.info("查询终端参数应答:{}", msg.getTerminalArgList());
                 }
-                logger.info("<<<<<[查询终端参数应答],phone={},flowid={}", header.getTerminalPhone(), header.getFlowId());
             } catch (Exception e) {
                 logger.error("<<<<<[查询终端参数应答]处理错误,phone={},flowid={},err={}", header.getTerminalPhone(), header.getFlowId(),
                         e.getMessage());
@@ -258,7 +262,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
      * @throws Exception 处理扩展消息上行数据
      */
     private void processExtendedMsg(ExtendedTimekeepingTrainingMsg msg) throws Exception {
-        logger.info("扩展消息:{}", JSON.toJSONString(msg, true));
+        //logger.info("扩展消息:{}", JSON.toJSONString(msg, true));
         byte[] dataCon = msg.getExtendedTimekeepingTrainingInfo().getDataContent();
         //教练登录
         if (TPMSConsts.COACH_LOGIN == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
@@ -292,9 +296,45 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
         }
         //上传照片数据包
         else if (TPMSConsts.PHOTO_UPLOAD_DATA == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
-            PhotoUploadDataMsg photoUploadDataMsg = this.decoder.photoUploadDataMsg(dataCon);
+            PhotoUploadDataMsg photoUploadDataMsg = null;
+            logger.info("照片数据:{}", dataCon);
+            try {
+                if (msg.getMsgHeader().isHasSubPackage()) {
+                    //包总数
+                    logger.info("包总数:{}", msg.getMsgHeader().getTotalSubPackage(), msg.getMsgHeader().getSubPackageSeq());
+                    //包序号
+                    logger.info("包序号:{}", msg.getMsgHeader().getSubPackageSeq());
+                    //照片编号
+                    byte[] tmp = new byte[10];
+                    System.arraycopy(dataCon, 0, tmp, 0, tmp.length);
+                    logger.info("照片编号:{}", tmp);
+                    //照片数据
+                    byte[] bs = new byte[dataCon.length - 10];
+                    System.arraycopy(dataCon, 10, bs, 0, bs.length);
+                    map.put(msg.getMsgHeader().getSubPackageSeq(), bs);
+                    logger.info("map.size():{}", map.size());
+                    if (map.size() == msg.getMsgHeader().getTotalSubPackage()) {
+                        for (int i = 0; i < map.size(); i++) {
+                            loopBuffer.write(map.get(i + 1L));
+                        }
+                        logger.info("数据长度:{}", loopBuffer.count());
+                        photoUploadDataMsg = this.decoder.photoUploadDataPckMsg(tmp, loopBuffer.read(loopBuffer.count()));
+                        Img2Base64Util.generateImage(photoUploadDataMsg.getPhotoData(),"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
+                        logger.info("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
+                        loopBuffer.remove(loopBuffer.count());
+                        map.clear();
+                    }
+                } else {
+                    photoUploadDataMsg = this.decoder.photoUploadDataMsg(dataCon);
+                    Img2Base64Util.generateImage(photoUploadDataMsg.getPhotoData(),"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
+                    logger.info("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
+                }
+            } catch (Exception e) {
+                logger.error("<<<<<[上传照片数据包]处理错误,phone={},flowid={},err={}", msg.getMsgHeader().getTerminalPhone(), msg.getMsgHeader().getFlowId(),
+                        e.getMessage());
+                e.printStackTrace();
+            }
             this.msgProcessService.photoUploadDataMsg(msg, photoUploadDataMsg);
-            logger.info("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
         }
         //查询计时终端应用参数应答
         else if (TPMSConsts.QUERY_TERMINAL_APPLY_ARG == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
