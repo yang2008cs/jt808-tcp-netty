@@ -289,49 +289,52 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
         //照片上传初始化
         else if (TPMSConsts.PHOTO_UPLOAD_INITIALIZES == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
             PhotoUploadInitializesMsg photoUploadInitializesMsg = this.decoder.photoUploadInitializesMsg(dataCon);
+            if(photoUploadInitializesMsg.getPhotoType()==17 || photoUploadInitializesMsg.getPhotoType()==18 || photoUploadInitializesMsg.getPhotoType()==19){
+                logger.info("保存照片信息到数据库");
+            }else {
+                logger.info("不保存照片信息到数据库");
+            }
             this.msgProcessService.photoUploadInitializesMsg(msg, photoUploadInitializesMsg);
         }
-        //上传照片数据包
+        //上传照片数据包 ===>>>通用应答
         else if (TPMSConsts.PHOTO_UPLOAD_DATA == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
             PhotoUploadDataMsg photoUploadDataMsg = null;
-            logger.info("照片数据:{}", dataCon);
             try {
+                //包总数
+                logger.info("包总数:{}", msg.getMsgHeader().getTotalSubPackage(), msg.getMsgHeader().getSubPackageSeq());
+                //包序号
+                logger.info("包序号:{}", msg.getMsgHeader().getSubPackageSeq());
+                //照片编号
+                byte[] tmp = new byte[10];
+                System.arraycopy(dataCon, 0, tmp, 0, tmp.length);
+                //照片数据
+                byte[] bs = new byte[dataCon.length - 10];
+                System.arraycopy(dataCon, 10, bs, 0, bs.length);
                 if (msg.getMsgHeader().isHasSubPackage()) {
-                    //包总数
-                    logger.info("包总数:{}", msg.getMsgHeader().getTotalSubPackage(), msg.getMsgHeader().getSubPackageSeq());
-                    //包序号
-                    logger.info("包序号:{}", msg.getMsgHeader().getSubPackageSeq());
-                    //照片编号
-                    byte[] tmp = new byte[10];
-                    System.arraycopy(dataCon, 0, tmp, 0, tmp.length);
-                    logger.info("照片编号:{}", tmp);
-                    //照片数据
-                    byte[] bs = new byte[dataCon.length - 10];
-                    System.arraycopy(dataCon, 10, bs, 0, bs.length);
                     map.put(msg.getMsgHeader().getSubPackageSeq(), bs);
                     logger.info("map.size():{}", map.size());
                     if (map.size() == msg.getMsgHeader().getTotalSubPackage()) {
                         for (int i = 0; i < map.size(); i++) {
                             loopBuffer.write(map.get(i + 1L));
                         }
-                        logger.info("数据长度:{}", loopBuffer.count());
-                        photoUploadDataMsg = this.decoder.photoUploadDataPckMsg(tmp, loopBuffer.read(loopBuffer.count()));
-                        Img2Base64Util.generateImage(photoUploadDataMsg.getPhotoData(),"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
-                        logger.info("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
+                        byte[] photo = loopBuffer.read(loopBuffer.count());
+                        photoUploadDataMsg = this.decoder.photoUploadDataPckMsg(tmp, photo);
+                        Img2Base64Util.generateImage(photo,"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
+                        logger.info("上传照片数据包");
                         loopBuffer.remove(loopBuffer.count());
                         map.clear();
                     }
                 } else {
-                    photoUploadDataMsg = this.decoder.photoUploadDataMsg(dataCon);
-                    Img2Base64Util.generateImage(photoUploadDataMsg.getPhotoData(),"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
-                    logger.info("上传照片数据包:{}", JSON.toJSONString(photoUploadDataMsg, true));
+                    photoUploadDataMsg = this.decoder.photoUploadDataPckMsg(tmp, bs);
+                    Img2Base64Util.generateImage(bs,"D:\\"+photoUploadDataMsg.getPhotoNum()+".jpg");
+                    logger.info("上传照片数据包");
                 }
             } catch (Exception e) {
                 logger.error("<<<<<[上传照片数据包]处理错误,phone={},flowid={},err={}", msg.getMsgHeader().getTerminalPhone(), msg.getMsgHeader().getFlowId(),
                         e.getMessage());
                 e.printStackTrace();
             }
-            this.msgProcessService.photoUploadDataMsg(msg, photoUploadDataMsg);
+            //this.msgProcessService.photoUploadDataMsg(msg, photoUploadDataMsg);
         }
         //查询计时终端应用参数应答
         else if (TPMSConsts.QUERY_TERMINAL_APPLY_ARG == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {

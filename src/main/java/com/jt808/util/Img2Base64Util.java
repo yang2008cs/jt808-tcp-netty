@@ -64,4 +64,23 @@ public class Img2Base64Util {
             return false;
         }
     }
+
+    /**
+     * 图片字节数组生成图片
+     * @param b 图片字节数组
+     * @param imgFilePath 保存路径
+     * @return
+     */
+    public static boolean generateImage(byte[] b,String imgFilePath) {
+        try {
+            //生成jpeg图片
+            OutputStream out = new FileOutputStream(imgFilePath);
+            out.write(b);
+            out.flush();
+            out.close();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
