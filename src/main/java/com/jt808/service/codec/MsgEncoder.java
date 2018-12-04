@@ -449,4 +449,60 @@ public class MsgEncoder {
         // 连接并且转义
         return this.doEncode(headerAndBody, checkSum);
     }
+    /**
+     * 获取教练或学员照片应答
+     * @param msg 扩展消息
+     * @param msgTotalNum 包总数
+     * @param packageNum  包序号
+     * @param length  当前图片数据长度
+     * @param tem    图片数据
+     * @param flowId 流水号
+     * @return
+     * @throws Exception
+     */
+    public byte[] encodeCoachOrStuPhotoResp(ExtendedTimekeepingTrainingMsg msg, int msgTotalNum, int packageNum, int length, byte[] tem, int flowId) throws Exception {
+        // 应答字节数组
+        byte[] body = this.bitOperator.concatAll(Arrays.asList(
+                // 结果
+                bitOperator.integerTo1Bytes(0),
+                bitOperator.integerTo4Bytes(length),
+                tem
+        ));
+        //扩展消息字节数组
+        byte[] msgBody =  this.bitOperator.concatAll(Arrays.asList(
+                // 透传类型
+                bitOperator.integerTo1Bytes(0),
+                // 透传消息id
+                bitOperator.integerTo2Bytes(TPMSConsts.COACH_OR_STU_PHOTO_RESP),
+                //扩展消息属性
+                bitOperator.integerTo2Bytes(0),
+                //驾培包序号
+                bitOperator.integerTo2Bytes(1),
+                //计时终端编号
+                msg.getExtendedTimekeepingTrainingInfo().getTerminalId().getBytes(TPMSConsts.STRING_CHARSET),
+                //数据长度
+                bitOperator.integerTo2Bytes(body.length),
+                //数据内容
+                body,
+                //校验串
+                "123465789".getBytes(TPMSConsts.STRING_CHARSET)
+        ));
+        //是否分包
+        boolean isSubPackage = false;
+        if(msgTotalNum>0){
+            isSubPackage = true;
+        }
+        //消息体属性
+        int msgBodyProps = this.jt808ProtocolUtils.generateMsgBodyProps(msgBody.length, 0b000, isSubPackage, 0);
+        // 消息头
+        byte[] msgHeader = this.jt808ProtocolUtils.generateMsgHeader(msg.getMsgHeader().getTerminalPhone(),
+                TPMSConsts.DATA_DOWN, msgBody, msgBodyProps, flowId,msgTotalNum,packageNum);
+
+        byte[] headerAndBody = this.bitOperator.concatAll(msgHeader, msgBody);
+
+        // 校验码
+        int checkSum = this.bitOperator.getCheckSum4JT808(headerAndBody, 0, headerAndBody.length - 1);
+        // 连接并且转义
+        return this.doEncode(headerAndBody, checkSum);
+    }
 }

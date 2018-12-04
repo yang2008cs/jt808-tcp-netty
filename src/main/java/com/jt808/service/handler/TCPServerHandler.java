@@ -9,6 +9,7 @@ import com.jt808.server.SessionManager;
 import com.jt808.service.TerminalMsgProcessService;
 import com.jt808.service.codec.MsgDecoder;
 import com.jt808.util.DigitalUtils;
+import com.jt808.util.PhotoUtil;
 import com.jt808.vo.PackageData;
 import com.jt808.vo.PackageData.MsgHeader;
 import com.jt808.vo.Session;
@@ -404,6 +405,19 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
                 logger.info("上传指定照片应答:【找到照片，稍后上传】");
             } else {
                 logger.info("上传指定照片应答:【没有找到该照片】");
+            }
+        }
+        //获取教练或学员照片
+        else if (TPMSConsts.COACH_OR_STU_PHOTO == msg.getExtendedTimekeepingTrainingInfo().getOspfId()) {
+            CoachOrStuPhotoMsg coachOrStuPhotoMsg = this.decoder.toCoachOrStuPhotoMsg(dataCon);
+            if (coachOrStuPhotoMsg.getType() == 0) {
+                logger.info("发送教练照片");
+                byte[] bs =PhotoUtil.scale("D://img//11.jpg",160, 120, true);
+                this.msgProcessService.coachOrStuPhotoMsg(msg, bs);
+            }else {
+                logger.info("发送学员照片");
+                byte[] bs = PhotoUtil.scale("D://img//5.jpg",160, 120, true);
+                this.msgProcessService.coachOrStuPhotoMsg(msg, bs);
             }
         }
     }

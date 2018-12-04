@@ -385,4 +385,43 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
         byte[] bs = this.msgEncoder.encodeUpQueryImageResp(msg, code, msg.getMsgHeader().getFlowId());
         super.send2Client(msg.getChannel(), bs);
     }
+    /**
+     * 获取教练或学员照片 === 应答
+     * @param msg
+     * @param data
+     * @throws Exception
+     */
+    public void coachOrStuPhotoMsg(ExtendedTimekeepingTrainingMsg msg, byte[] data) throws Exception{
+        log.debug("发送照片");
+        final String sessionId = Session.buildId(msg.getChannel());
+        Session session = sessionManager.findBySessionId(sessionId);
+        if (session == null) {
+            session = Session.buildSession(msg.getChannel(), msg.getMsgHeader().getTerminalPhone());
+        }
+        session.setAuthenticated(true);
+        session.setTerminalPhone(msg.getMsgHeader().getTerminalPhone());
+        sessionManager.put(session.getId(), session);
+        //消息包总数
+        int msgTotalNum = (int) Math.ceil(data.length / 768f);
+        //包序号
+        int packageNum = 0;
+        int len =768;
+        if(data.length>768){
+            for(int i=0;i<msgTotalNum;i++){
+                packageNum++;
+                //最后剩余数据
+                if((i+1)*768>data.length){
+                    len = data.length-(i*768);
+                }
+                byte[] tem = new byte[len];
+                System.arraycopy(data,i*768,tem,0,tem.length);
+                byte[] bs = this.msgEncoder.encodeCoachOrStuPhotoResp(msg, msgTotalNum,packageNum,tem.length,tem, msg.getMsgHeader().getFlowId());
+                super.send2Client(msg.getChannel(), bs);
+            }
+        }else {
+            byte[] bs = this.msgEncoder.encodeCoachOrStuPhotoResp(msg, 0,0,data.length,data, msg.getMsgHeader().getFlowId());
+            super.send2Client(msg.getChannel(), bs);
+        }
+
+    }
 }

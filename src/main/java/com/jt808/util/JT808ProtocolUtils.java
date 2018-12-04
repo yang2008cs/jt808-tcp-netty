@@ -106,12 +106,12 @@ public class JT808ProtocolUtils {
 				baos.write(bs[i]);
 			}
 			for (int i = start; i < end; i++) {
-				if (bs[i] == 0x7e) {
+				/*if (bs[i] == 0x7e) {
 					baos.write(0x7d);
 					baos.write(0x02);
-				} else {
+				} else {*/
 					baos.write(bs[i]);
-				}
+				/*}*/
 			}
 			for (int i = end; i < bs.length; i++) {
 				baos.write(bs[i]);

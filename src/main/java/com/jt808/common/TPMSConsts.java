@@ -140,6 +140,14 @@ public class TPMSConsts {
      */
     public static final int PHOTO_UPLOAD_DATA = 0x0306;
     /**
+     * 获取教练或学员照片
+     */
+    public static final int COACH_OR_STU_PHOTO = 0x8207;
+    /**
+     * 下发教练或学员照片
+     */
+    public static final int COACH_OR_STU_PHOTO_RESP = 0x0207;
+    /**
      * 查询计时终端应用参数应答
      */
     public static final int QUERY_TERMINAL_APPLY_ARG = 0x0503;

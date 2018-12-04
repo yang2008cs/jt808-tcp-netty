@@ -753,4 +753,17 @@ public class MsgDecoder {
         }
         return gnssMsg;
     }
+    /**
+     * 获取教练或学员照片
+     * @param data
+     * @return
+     */
+    public CoachOrStuPhotoMsg toCoachOrStuPhotoMsg(byte[] data) {
+        CoachOrStuPhotoMsg coachOrStuPhotoMsg = new CoachOrStuPhotoMsg();
+        //类型 byte
+        coachOrStuPhotoMsg.setType(this.parseIntFromBytes(data,0,1));
+        //教练或学员编号 byte[16]
+        coachOrStuPhotoMsg.setNum(this.parseStringFromBytes(data,1,16));
+        return coachOrStuPhotoMsg;
+    }
 }
