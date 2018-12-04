@@ -392,7 +392,6 @@ public class TerminalMsgProcessService extends BaseMsgProcessService {
      * @throws Exception
      */
     public void coachOrStuPhotoMsg(ExtendedTimekeepingTrainingMsg msg, byte[] data) throws Exception{
-        log.debug("发送照片");
         final String sessionId = Session.buildId(msg.getChannel());
         Session session = sessionManager.findBySessionId(sessionId);
         if (session == null) {
